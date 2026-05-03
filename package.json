@@ -8,6 +8,8 @@
   },
   "scripts": {
     "bench": "tsx src/cli.ts",
+    "snapshot": "tsx src/snapshot.ts",
+    "deploy": "npm run snapshot && vercel deploy --prod dist --yes",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

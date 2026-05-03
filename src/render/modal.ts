@@ -71,9 +71,37 @@ export const MODAL_SCRIPT = `
     mBody.innerHTML = '<div style="color:var(--muted);padding:20px;">loading...</div>';
     modal.classList.add('show');
     try {
-      const res = await fetch('/api/trial/' + encodeURIComponent(runId) + '/' + encodeURIComponent(suite) + '/' + encodeURIComponent(idx));
-      if (!res.ok) { mBody.innerHTML = '<div style="color:var(--bad);padding:20px;">error: ' + res.status + '</div>'; return; }
-      const t = await res.json();
+      // Try the per-trial endpoint (local serve); fall back to slicing the
+      // suite JSON (static snapshot — no per-trial files).
+      const trialUrl = '/api/trial/' + encodeURIComponent(runId) + '/' + encodeURIComponent(suite) + '/' + encodeURIComponent(idx);
+      const suiteUrl = '/run/' + encodeURIComponent(runId) + '/' + encodeURIComponent(suite) + '.json';
+      let t = null;
+      let lastStatus = 0;
+      for (const url of [trialUrl, suiteUrl]) {
+        const res = await fetch(url);
+        lastStatus = res.status;
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data && Array.isArray(data.trials)) {
+          const tr = data.trials[Number(idx)];
+          if (!tr) { mBody.innerHTML = '<div style="color:var(--bad);padding:20px;">trial ' + idx + ' not found</div>'; return; }
+          t = {
+            index: tr.index, passed: tr.passed, reasons: tr.reasons, metrics: tr.metrics,
+            latency_ms: tr.call.latencyMs,
+            prompt_tokens: tr.call.promptTokens || 0,
+            cached_tokens: tr.call.cachedTokens || 0,
+            completion_tokens: tr.call.completionTokens || 0,
+            finish_reason: tr.call.finishReason || null,
+            error: tr.call.error || null,
+            tool_calls: tr.call.toolCalls || null,
+            content: tr.call.content || '',
+          };
+        } else {
+          t = data;
+        }
+        break;
+      }
+      if (!t) { mBody.innerHTML = '<div style="color:var(--bad);padding:20px;">error: ' + lastStatus + '</div>'; return; }
       const passedLabel = t.passed
         ? '<span class="pill pass">PASS</span>'
         : '<span class="pill fail">FAIL</span>';

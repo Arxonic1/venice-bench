@@ -49,7 +49,7 @@ function readRunSuite(runId: string, suite: string): SuiteResult | null {
   }
 }
 
-function renderBaselinePage(): string {
+export function renderBaselinePage(): string {
   const baseline = loadBaseline();
   if (!baseline) {
     const body = `<section class="panel" style="border:1px solid var(--line);border-radius:14px;padding:20px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0));">
